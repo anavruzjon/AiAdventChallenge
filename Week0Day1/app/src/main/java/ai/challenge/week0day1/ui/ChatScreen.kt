@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -170,12 +172,27 @@ private fun MessageBubble(message: ChatMessage) {
             },
             shape = bubbleShape(isUser),
             tonalElevation = 1.dp,
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier.widthIn(max = 600.dp)
         ) {
-            Text(
-                text = message.text,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
+            if (isUser) {
+                // Сообщения пользователя — простой текст.
+                Text(
+                    text = message.text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            } else {
+                // Ответы ассистента приходят в Markdown — рендерим красиво,
+                // блоки кода моноширинным шрифтом с фоном.
+                MarkdownText(
+                    markdown = message.text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = LocalContentColor.current
+                    ),
+                    syntaxHighlightColor = MaterialTheme.colorScheme.surfaceVariant,
+                    syntaxHighlightTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

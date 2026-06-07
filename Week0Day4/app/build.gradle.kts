@@ -12,7 +12,7 @@ val localProps = Properties().apply {
 }
 
 android {
-    namespace = "ai.challenge.week0day2"
+    namespace = "ai.challenge.week0day4"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "ai.challenge.week0day2"
+        applicationId = "ai.challenge.week0day4"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

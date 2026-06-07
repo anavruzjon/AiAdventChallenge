@@ -1,4 +1,4 @@
-package ai.challenge.week0day2.ui
+package ai.challenge.week0day4.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -32,7 +32,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -42,7 +41,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.jeziellago.compose.markdowntext.MarkdownText
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,135 +83,61 @@ fun ChatScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
                 actions = {
                     IconButton(onClick = viewModel::onToggleSettings) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
-                            contentDescription = "Параметры ограничений"
+                            contentDescription = "Настройки температуры"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
                 modifier = Modifier.statusBarsPadding()
             )
         },
         bottomBar = {
-            InputBar(
-                input = state.input,
-                enabled = !state.isLoading,
-                onInputChange = viewModel::onInputChange,
-                onSend = viewModel::onSend,
-                modifier = Modifier.navigationBarsPadding()
-            )
+            Column(modifier = Modifier.navigationBarsPadding()) {
+                AnimatedVisibility(visible = state.isSettingsOpen) {
+                    TemperaturePanel(
+                        temperature = state.temperature,
+                        enabled = !state.isLoading,
+                        onTemperatureChange = viewModel::onTemperatureChange
+                    )
+                }
+                InputBar(
+                    input = state.input,
+                    enabled = !state.isLoading,
+                    onInputChange = viewModel::onInputChange,
+                    onSend = viewModel::onSend
+                )
+            }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AnimatedVisibility(visible = state.settingsOpen) {
-                SettingsPanel(
-                    maxTokens = state.maxTokens,
-                    formatPrompt = state.formatPrompt,
-                    stopSequence = state.stopSequence,
-                    onMaxTokensChange = viewModel::onMaxTokensChange,
-                    onFormatPromptChange = viewModel::onFormatPromptChange,
-                    onStopSequenceChange = viewModel::onStopSequenceChange,
-                    onReset = viewModel::onResetSettings
-                )
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                if (state.messages.isEmpty() && !state.isLoading) {
-                    EmptyState()
-                } else {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(state.messages) { message ->
-                            MessageBubble(message)
-                        }
-                        if (state.isLoading) {
-                            item { LoadingBubble() }
-                        }
+            if (state.messages.isEmpty() && !state.isLoading) {
+                EmptyState()
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(state.messages) { message ->
+                        MessageBubble(message)
+                    }
+                    if (state.isLoading) {
+                        item { LoadingBubble() }
                     }
                 }
             }
-        }
-    }
-}
-
-/** Панель параметров «контролируемого» запроса: длина, формат, stop-последовательность. */
-@Composable
-private fun SettingsPanel(
-    maxTokens: Int,
-    formatPrompt: String,
-    stopSequence: String,
-    onMaxTokensChange: (Int) -> Unit,
-    onFormatPromptChange: (String) -> Unit,
-    onStopSequenceChange: (String) -> Unit,
-    onReset: () -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Параметры ограничений",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                TextButton(onClick = onReset) { Text("Сбросить") }
-            }
-
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Лимит длины (max_tokens): $maxTokens",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Slider(
-                value = maxTokens.toFloat(),
-                onValueChange = { onMaxTokensChange(it.toInt()) },
-                valueRange = 20f..500f,
-                steps = 47 // шаг 10 токенов на диапазоне 20..500
-            )
-
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = formatPrompt,
-                onValueChange = onFormatPromptChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Формат ответа (system)") },
-                minLines = 2,
-                maxLines = 5
-            )
-
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = stopSequence,
-                onValueChange = onStopSequenceChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Stop-последовательность") },
-                singleLine = true,
-                supportingText = { Text("Пусто — не отправлять stop") }
-            )
-
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider()
         }
     }
 }
@@ -236,7 +161,7 @@ private fun EmptyState() {
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            text = "Покажу два ответа DeepSeek: без ограничений и с ограничениями",
+            text = "Отвечу с помощью DeepSeek",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -270,43 +195,24 @@ private fun MessageBubble(message: ChatMessage) {
             tonalElevation = 1.dp,
             modifier = Modifier.widthIn(max = 600.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                // Подпись карточки сравнения: «Без ограничений» / «С ограничениями».
-                message.label?.let { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(4.dp))
-                }
-                if (isUser) {
-                    // Сообщения пользователя — простой текст.
-                    Text(text = message.text)
-                } else {
-                    // Ответы ассистента приходят в Markdown — рендерим красиво,
-                    // блоки кода моноширинным шрифтом с фоном.
-                    MarkdownText(
-                        markdown = message.text,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = LocalContentColor.current
-                        ),
-                        syntaxHighlightColor = MaterialTheme.colorScheme.surfaceVariant,
-                        syntaxHighlightTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                // Метаданные ответа: finish_reason и число токенов.
-                message.meta?.let { meta ->
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            if (isUser) {
+                // Сообщения пользователя — простой текст.
+                Text(
+                    text = message.text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            } else {
+                // Ответы ассистента приходят в Markdown — рендерим красиво,
+                // блоки кода моноширинным шрифтом с фоном.
+                MarkdownText(
+                    markdown = message.text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = LocalContentColor.current
+                    ),
+                    syntaxHighlightColor = MaterialTheme.colorScheme.surfaceVariant,
+                    syntaxHighlightTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -361,6 +267,63 @@ private fun Avatar(emoji: String) {
         contentAlignment = Alignment.Center
     ) {
         Text(text = emoji, fontSize = 16.sp)
+    }
+}
+
+@Composable
+private fun TemperaturePanel(
+    temperature: Float,
+    enabled: Boolean,
+    onTemperatureChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Температура",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = String.format(Locale.US, "%.1f", temperature),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Slider(
+                value = temperature,
+                onValueChange = onTemperatureChange,
+                valueRange = 0f..2f,
+                steps = 19, // шаг 0.1 (20 интервалов на отрезке 0..2)
+                enabled = enabled
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "0.0 · точно",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "креативно · 2.0",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
